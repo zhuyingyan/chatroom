@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box;}
+      body{font:13px Helvetica,Arial;}
+      form{padding:3px;width:100%;border-bottom:1px solid #aaa;}
+      p{margin:10px;}
+      form label{width:10em;display:inline-block;}
+      form input{border:1px solid #aaa;padding:10px;width:28%;margin:0 .5%;}
+      form button{width:9%;background:rgb(130,224,255); cursor:pointer;border:none;padding:10px;}
+      #m{width:48%;}
+      .mes{width:70%;float:left;min-height:100px;}
+      #message{list-style-type:none;margin:0;padding:0;}
+      #message li{font-size:14px;color:#000;display:block;margin:10px;}
+      #message li span{background:rgb(130,224,255);padding:5px 10px;display:inline-block;}
+      #message .me{text-align:right;}
+      #message .me span{background:rgb(130,255,224);} 
+      #message li span b{color:#452465;}      
+
+      .us{width:30%;float:left;border-left:1px solid #aaa;min-height:100px;}
+      #user{list-style-type:none;margin:0;padding:0;}
+      #user li{padding:5px 10px;margin:10px;}
+      
+      .warm{width:200px;border:1px solid #aaa;text-align:center;padding:80px 0;font-size:20px;-webkit-transform:translate(50%,110%);transform:translate(50%,110%);-webkit-transition:all .2s ease-out;transition:all .2s ease-out;opacity:0;}
+      .onwarm{-webkit-transform:translate(50%,50%);transform:translate(50%,50%);opacity:1;}
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    
+  </head>
+  <body>
+    <h1>Chat Room</h1>
+    <form action="">
+      <p><label for="name">Username:</label><input id="name" type="text" />
+      <button id="login">Login</button></p>
+      <p><label for="name">Message:</label><input id="m" autocomplete="off" /><button id="btn">Send</button></p>
+    </form>
+    <div class="mes_wr">
+      <h2>Message</h2>	
+      <div class="mes">
+        <ul id="message"></ul>
+      </div>
+      <div class="us">
+        <ul id="user"></ul>
+      </div>
+    </div>
+    <div id="warm" class="warm">Please login first!</div>
+  </body>
+  <script>
+  $(function(){
+      var socket = io(),isLog = false,username,obj = {},msg;
+      $('#login').click(function(){
+        if($('#name').val()&&!isLog){
+          $('#name').attr("disabled","disabled");
+          username = $('#name').val();
+          obj.user = username;
+          isLog = true;
+          socket.emit('login',username);
+        }
+        return false;
+      });
+      $('#btn').click(function(){
+        if(isLog){
+          obj.mess  = $('#m').val();
+          msg = JSON.stringify(obj);
+          socket.emit('chatmessage',msg);
+          $('#m').val('');
+        }else{
+          $('#warm').addClass('onwarm');
+          setTimeout(function(){
+            $('#warm').removeClass('onwarm');
+          },1000);
+        }
+        return false;
+      });
+      $('#m').keydown(function(e){
+        if(e.keyCode==13){
+           if(isLog){
+             obj.mess  = $('#m').val();
+             msg = JSON.stringify(obj);
+             socket.emit('chatmessage',msg);
+             $('#m').val('');
+           }else{
+             $('#warm').addClass('onwarm');
+             setTimeout(function(){
+               $('#warm').removeClass('onwarm');
+             },1000);
+           }
+          return false;
+        } 
+        
+      });
+      
+        socket.emit('haduse',"ok");
+        socket.on('logwho',function(arrays){
+          if(!isLog){
+            var arrobj = JSON.parse(arrays),i=0;
+            console.log(arrays);
+            for(;i<arrobj.arr.length;i++){
+              $('#user').append('<li>'+arrobj.arr[i]+' had logined!</li>');
+            }
+          }
+        });
+      
+      socket.on('loginSe',function(name){
+        $('#user').append('<li>'+name+' had logined!</li>');
+      });
+      socket.on('chatmessageserver',function(msg){
+        var obje = JSON.parse(msg);
+        if(obje.user==username){
+          $('#message').append('<li class="me"><span><b>'+obje.user+'</b>: '+obje.mess+'</span></li>');
+        }else{
+          $('#message').append('<li><span><b>'+obje.user+'</b>: '+obje.mess+'</span></li>');
+        }
+      });
+
+      socket.on('wholeave',function(msg){
+        $('#user').append('<li>'+msg+' logined out!</li>');
+      });
+
+    });
+    </script>
+</html>
